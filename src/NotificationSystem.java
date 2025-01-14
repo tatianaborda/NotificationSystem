@@ -1,57 +1,23 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.*;
 
 public class NotificationSystem {
-    private static final List<String> notifications = new ArrayList<>();
+    private static BlockingQueue<String> notifications = new LinkedBlockingQueue<>();
+    private static ExecutorService executor = Executors.newFixedThreadPool(10);
 
-    public static void main(String[] args) throws InterruptedException {
-        // Simula la recepción de notificaciones cada segundo
-        new Thread(NotificationSystem::receiveNotifications).start();
-
-        // Procesa las notificaciones en un solo hilo
-        processNotifications();
-    }
-
-    // Simula la recepción de notificaciones
-    private static void receiveNotifications() {
-        int counter = 1;
-        while (true) {
-            String notification = "Notification" + counter++;
-            notifications.add(notification);
-            System.out.println("Added: " + notification);
-            try {
-                Thread.sleep(1000); // Simula la recepción cada 1 segundo
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+    public static void main(String[] args) {
+        for (int i = 0; i < 10000; i++) {
+            notifications.add("Notification " + i); //Agrega una notificación a la cola
+            executor.submit(() -> sendNotification(notifications.poll()));//El submit envía una notificacion a un hilo disponible del pool y el poll extrae y elimina la primera notificación de la cola
         }
+        executor.shutdown(); //cierra las tareas y no admite mas
     }
 
-    // Procesa las notificaciones
-    private static void processNotifications() {
-        while (true) {
-            if (!notifications.isEmpty()) {
-                String notification = notifications.remove(0); // Extrae la primera notificación
-                sendNotification(notification); // Simula el envío
-            } else {
-                System.out.println("No notifications to process...");
-                try {
-                    Thread.sleep(500); // Espera antes de revisar de nuevo
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    // Simula el envío de una notificación (operación I/O lenta)
-    private static void sendNotification(String notification) {
-        System.out.println("Sending: " + notification);
+    private static void sendNotification(String message) {
         try {
-            Thread.sleep(3000); // Simula el retraso del envío
+            Thread.sleep(500); // Simulación de API externa
+            System.out.println("Sent: " + message);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();// Restablece el estado de interrupción del hilo
         }
-        System.out.println("Sent: " + notification);
     }
 }
